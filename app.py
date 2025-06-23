@@ -6,6 +6,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 import asyncio
 from datetime import datetime
 import json
+import threading
 
 # Setup logging
 logging.basicConfig(
@@ -27,6 +28,9 @@ user_data = {}
 total_users = 0
 daily_shares = 0
 
+# Global bot application
+bot_application = None
+
 @app.route('/')
 def webapp():
     """Serve the main webapp"""
@@ -46,12 +50,12 @@ def track_share():
         user_data[user_id]['shares'] += 1
         daily_shares += 1
         
-        # Notify admin about share
-        if ADMIN_ID:
+        # Schedule notification to admin
+        if ADMIN_ID and bot_application:
             try:
                 asyncio.create_task(notify_admin_share(user_id))
             except:
-                pass
+                logger.error("Failed to schedule admin notification")
     
     return jsonify({'status': 'success', 'shares': user_data.get(user_id, {}).get('shares', 0)})
 
@@ -66,12 +70,11 @@ def get_stats():
 
 async def notify_admin_share(user_id):
     """Notify admin about new share"""
-    if not ADMIN_ID or not BOT_TOKEN:
+    if not ADMIN_ID or not bot_application:
         return
     
     try:
-        application = Application.builder().token(BOT_TOKEN).build()
-        await application.bot.send_message(
+        await bot_application.bot.send_message(
             chat_id=ADMIN_ID,
             text=f"🔥 Bagong Share!\n\n👤 User ID: {user_id}\n📊 Total Shares ngayon: {daily_shares}\n⏰ Oras: {datetime.now().strftime('%H:%M:%S')}"
         )
@@ -255,39 +258,49 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 • I-refresh ang webapp kung hindi gumagana
 • I-restart ang bot gamit ang /start
 
-**Admin Contact:** @admin (kung may emergency)
+**Admin Contact:** @ldentifyAphrodite (kung may emergency)
 
 🔥 Happy watching sa TikTok VIP content!
 """
     await update.message.reply_text(help_text, parse_mode='Markdown')
 
-def main():
-    """Start the bot and webapp"""
+def run_bot():
+    """Run the Telegram bot in a separate thread"""
+    global bot_application
+    
     if not BOT_TOKEN:
         logger.error("BOT_API environment variable not set!")
         return
     
-    # Create application
-    application = Application.builder().token(BOT_TOKEN).build()
-    
-    # Add handlers
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CallbackQueryHandler(button_callback))
-    
-    # Start the bot in a separate thread
-    import threading
-    def run_bot():
-        application.run_polling()
-    
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.daemon = True
+    try:
+        # Create application
+        bot_application = Application.builder().token(BOT_TOKEN).build()
+        
+        # Add handlers
+        bot_application.add_handler(CommandHandler("start", start))
+        bot_application.add_handler(CommandHandler("help", help_command))
+        bot_application.add_handler(CallbackQueryHandler(button_callback))
+        
+        logger.info("Starting Telegram bot...")
+        # Start the bot
+        bot_application.run_polling(drop_pending_updates=True)
+        
+    except Exception as e:
+        logger.error(f"Error starting bot: {e}")
+
+def start_bot_thread():
+    """Start bot in a separate thread"""
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
     bot_thread.start()
-    
-    # Start Flask app
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    logger.info("Bot thread started")
+
+# Start bot when module is imported
+if BOT_TOKEN:
+    start_bot_thread()
+else:
+    logger.warning("BOT_TOKEN not found, bot will not start")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
+    logger.info(f"Starting Flask app on port {port}")
     app.run(host='0.0.0.0', port=port, debug=False)
