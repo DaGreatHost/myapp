@@ -1,0 +1,9 @@
+# railway.toml
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "python app.py"
+healthcheckPath = "/"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
