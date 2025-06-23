@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="5; url='https://t.me/addlist/0rP4vpmc521lYmVl'">
+  <title>🔴 LIVE - TIKTOK PINAY ONLY</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background: #000;
+      color: #fff;
+      overflow: hidden;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    
+    .live-container {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .background-video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(255, 0, 80, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(138, 43, 226, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(255, 20, 147, 0.2) 0%, transparent 50%),
+        linear-gradient(45deg, #000000, #1a0033, #330033, #000000);
+      background-size: 300% 300%;
+      animation: gradientShift 8s ease infinite;
+      z-index: 1;
+    }
+    
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    .tiktok-particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      overflow: hidden;
+    }
+    
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: #fff;
+      border-radius: 50%;
+      opacity: 0.6;
+      animation: float 6s linear infinite;
+    }
+    
+    @keyframes float {
+      0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.6; }
+      100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+    }
+    
+    .live-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        linear-gradient(45deg, rgba(255,0,80,0.1), rgba(138,43,226,0.1)),
+        radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.3) 100%);
+      z-index: 3;
+    }
+    
+    .live-header {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 16px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+    }
+    
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #ff0050, #ff4081);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(255,0,80,0.4);
+      animation: pulse 2s infinite;
+    }
+    
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: #fff;
+      border-radius: 50%;
+      animation: blink 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0.3; }
+    }
+    
+    .viewers-counter {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(10px);
+      padding: 8px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    
+    .viewers-icon {
+      width: 16px;
+      height: 16px;
+      fill: #ff0050;
+    }
+    
+    .viewers-count {
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+    
+    .content-area {
+      position: relative;
+      z-index: 10;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 0 20px;
+      margin-bottom: 200px; /* Space for comments and share button */
+    }
+    
+    .profile-section {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    .profile-img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid #fff;
+      box-shadow: 0 8px 24px rgba(255,0,80,0.3);
+      margin-bottom: 20px;
+      animation: profilePulse 3s infinite;
+    }
+    
+    @keyframes profilePulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 8px 24px rgba(255,0,80,0.3); }
+      50% { transform: scale(1.02); box-shadow: 0 12px 32px rgba(255,0,80,0.5); }
+    }
+    
+    .live-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 12px;
+      text-shadow: 0 4px 12px rgba(0,0,0,0.8);
+      letter-spacing: -0.02em;
+      background: linear-gradient(45deg, #fff, #ff0050, #fff);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: titleGlow 3s ease-in-out infinite;
+    }
+
+    @keyframes titleGlow {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    
+    .live-subtitle {
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 30px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+    
+    .share-section {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 15;
+      width: 90%;
+      max-width: 320px;
+    }
+    
+    .share-progress {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    
+    .progress-label {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.8);
+      margin-bottom: 8px;
+      text-align: left;
+    }
+    
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      width: 5%;
+      background: linear-gradient(90deg, #fff, #ff0050);
+      border-radius: 10px;
+      transition: width 0.5s ease;
+      position: relative;
+    }
+    
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 20px;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5));
+      animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+      0% { opacity: 0; }
+      50% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    
+    .share-button {
+      background: linear-gradient(135deg, #ff0050, #ff4081);
+      color: #fff;
+      border: none;
+      padding: 16px 32px;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(255,0,80,0.4);
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      width: 100%;
+    }
+    
+    .share-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(255,0,80,0.5);
+    }
+    
+    .share-button:active {
+      transform: translateY(0);
+    }
+    
+    .share-icon {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+    
+    .share-counter {
+      background: rgba(255,255,255,0.2);
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+    }
+    
+    .bottom-ui {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      padding: 20px 16px;
+      background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+    }
+    
+    .live-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .action-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .action-btn:hover {
+      background: rgba(255,255,255,0.3);
+      transform: scale(1.1);
+    }
+    
+    .action-icon {
+      width: 24px;
+      height: 24px;
+      fill: #fff;
+    }
+    
+    .comments-section {
+      position: fixed;
+      bottom: 200px;
+      left: 16px;
+      right: 16px;
+      z-index: 12;
+      max-height: 200px;
+      overflow: hidden;
+    }
+    
+    .comment {
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(15px);
+      padding: 10px 14px;
+      border-radius: 20px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      animation: slideIn 0.5s ease;
+      max-width: 85%;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    @keyframes slideIn {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    
+    .comment-user {
+      color: #ff0050;
+      font-weight: 600;
+    }
+    
+    .live-effects {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+    
+    .heart {
+      position: absolute;
+      font-size: 24px;
+      color: #ff0050;
+      animation: floatUp 3s ease-out infinite;
+      opacity: 0;
+    }
+    
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-200px) scale(0.5); }
+    }
+    
+    @media (max-width: 480px) {
+      .live-title {
+        font-size: 2rem;
+      }
+      
+      .live-subtitle {
+        font-size: 1rem;
+      }
+      
+      .profile-img {
+        width: 100px;
+        height: 100px;
+      }
+      
+      .content-area {
+        margin-bottom: 180px;
+      }
+      
+      .comments-section {
+        bottom: 180px;
+      }
+      
+      .share-section {
+        bottom: 70px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="live-container">
+    <div class="background-video"></div>
+    <div class="tiktok-particles" id="particles"></div>
+    <div class="live-overlay"></div>
+    <div class="live-effects" id="liveEffects"></div>
+    
+    <div class="live-header">
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        LIVE
+      </div>
+      <div class="viewers-counter">
+        <svg class="viewers-icon" viewBox="0 0 24 24">
+          <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+        </svg>
+        <span class="viewers-count" id="viewersCount">48,612</span>
+      </div>
+    </div>
+    
+    <div class="content-area">
+      <div class="profile-section">
+        <img class="profile-img" src="https://blogger.googleusercontent.com/img/a/AVvXsEg8IR49SwocMw1pNFU3GbevcS9TshAII-HKzPMnBy9OkeYC3KEyGeIe2pDeEmTLwOncbjOQPp3E9IpZW9zL9XFed9g1dlCHe2vyzZz5VhpA5BX_fN0eNdjmupfPvfWFBrM4DCcPImE1wavCpyJytl7ZjeUgxQ5xnKkhSutZfbuqi-f9iSIMtcIoPhPQo44" alt="Live Host">
+        <h1 class="live-title">TIKTOK VIP</h1>
+        <p class="live-subtitle">Share in 3 Telegram groups to Join TIKTOK VIP</p>
+      </div>
+    </div>
+    
+    <div class="comments-section" id="commentsSection">
+      <div class="comment">
+        <span class="comment-user">MayaReyes:</span> Wow ang ganda naman! 😍
+      </div>
+      <div class="comment">
+        <span class="comment-user">JuanDela:</span> Share na guys! 
+      </div>
+    </div>
+    
+    <div class="share-section">
+      <div class="share-progress">
+        <div class="progress-label">Share Progress</div>
+        <div class="progress-bar-container">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+      </div>
+      <button class="share-button" id="shareButton">
+        <svg class="share-icon" viewBox="0 0 24 24">
+          <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.50-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
+        </svg>
+        SHARE NOW
+        <span class="share-counter" id="shareCounter">0/3</span>
+      </button>
+    </div>
+    
+    <div class="bottom-ui">
+      <div class="live-actions">
+        <button class="action-btn">
+          <svg class="action-icon" viewBox="0 0 24 24">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        </button>
+        <button class="action-btn">
+          <svg class="action-icon" viewBox="0 0 24 24">
+            <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/>
+          </svg>
+        </button>
+        <button class="action-btn">
+          <svg class="action-icon" viewBox="0 0 24 24">
+            <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.50-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const shareUrl = "https://t.me/share/url?url=𝗙𝗿𝗲𝗲%20𝗽𝗮𝘀𝗼𝗸%20𝗴𝘂𝘆𝘀!%20%F0%9F%91%89%20https%3A%2F%2Ft.me%2FTiktokViraIbot%3Fstartapp%3DWatchNow";
+    let shareCount = 0;
+    const maxShares = 3;
+    let viewerCount = 48612;
+    
+    const progressBar = document.getElementById('progressBar');
+    const shareCounter = document.getElementById('shareCounter');
+    const shareButton = document.getElementById('shareButton');
+    const viewersCount = document.getElementById('viewersCount');
+    const liveEffects = document.getElementById('liveEffects');
+    const commentsSection = document.getElementById('commentsSection');
+    const particles = document.getElementById('particles');
+    
+    // Create TikTok-style particles
+    function createParticle() {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.animationDuration = (Math.random() * 3 + 3) + 's';
+      particle.style.animationDelay = Math.random() * 2 + 's';
+      
+      // Random colors for particles
+      const colors = ['#ff0050', '#ffffff', '#ff4081', '#8a2be2'];
+      particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+      
+      particles.appendChild(particle);
+      
+      setTimeout(() => {
+        particle.remove();
+      }, 6000);
+    }
+    
+    // Create particles continuously
+    setInterval(createParticle, 300);
+    
+    // Viewer count animation
+    function updateViewerCount() {
+      const variation = Math.floor(Math.random() * 200) - 100;
+      viewerCount = Math.max(45000, Math.min(52000, viewerCount + variation));
+      viewersCount.textContent = viewerCount.toLocaleString();
+    }
+    
+    setInterval(updateViewerCount, 2000);
+    
+    // Heart animation
+    function createHeart() {
+      const heart = document.createElement('div');
+      heart.className = 'heart';
+      const hearts = ['❤️', '💖', '💕', '💗', '💝'];
+      heart.innerHTML = hearts[Math.floor(Math.random() * hearts.length)];
+      heart.style.left = Math.random() * 100 + '%';
+      heart.style.bottom = '0px';
+      heart.style.animationDelay = Math.random() * 2 + 's';
+      liveEffects.appendChild(heart);
+      
+      setTimeout(() => {
+        heart.remove();
+      }, 3000);
+    }
+    
+    setInterval(createHeart, 1500);
+    
+    // Filipino names and comments
+    const filipinoNames = [
+      'Nico', 'Rhezxx19', 'KeyNoneThought', 'JoseCruz', 'Ernni', 'PedroSantos', 
+      'RosaFlores', 'CarlosMendez', 'LuzVillanueva', 'ManuelGarcia', 'qtRamos', 
+      'DiegoTorres', 'SofiaMoreno', 'Ricardo', 'Vuiz', 'FelipeJimenez',
+      'KikoVargas', 'AlejandroMolina', 'NataliaOrtiz', 'EmilioDelgado', 'PaolaGutierrez',
+      'RafaelNavarro', 'AndreaRodriguez', 'GabrielCastillo', 'DanielaMartinez', 'OscarPerez',
+      'VictoriaLopez', 'FernandoGomez', 'AlejandraRivera', 'SergioMorales', 'MonicaAguilar',
+      'AlbertoVasquez', 'CarmenJimenez', 'EnriqueHerrera', 'PatriciaReyes', 'MiguelSilva',
+      'GloriaRuiz', 'ArmandoVargas', 'EstherMendoza', 'RobertoFernandez', 'CeciliaRamirez',
+      'BeautifulMaya', 'PrettyRosa', 'CutieAnna', 'SweetMaria', 'AngelJose', 'PrincessLuz',
+      'QueenIsabella', 'KingSergiooo', 'BabePaola', 'HottieMonica', 'SexyGloria', 'CutiePie123'
+    ];
+    
+    const filipinoComments = [
+      'Wow ang ganda naman! 😍', 'Grabe ang hot! 🔥', 'Share na guys!', 'Ang galing naman!',
+      'Saan ang link?', 'Join na tayo!', 'Sobrang ganda! 💖', 'Amazing! 🤩', 'Nice one!',
+      'Ang sarap tignan! 😋', 'Ganda ng quality!', 'Sana maging member na ako!', 'Hatdog! 😂',
+      'Pak ganern! 💅', 'Solid to guys!', 'Bet na bet! 👌', 'Jusko ang gandaaaa! 😱',
+      'Pwede na to! ✨', 'Wagas naman! 💯', 'Hindi ako makapaniwala! 😮', 'Legit ba to?',
+      'Ganda ng live! 📱', 'Ang fresh naman! 🌸', 'Para sa mga single! 💔', 'Wala na ako masabi! 😶',
+      'Salamat sa share! 🙏', 'Grabe ang dami viewers!', 'Trending na naman! 📈', 'Sana mapili ako! 🤞',
+      'Ang sweet ng boses! 🎵', 'Perfect timing! ⏰', 'Nakakagigil! 😤', 'Hindi ako makamove on! 💕',
+      'Ganda ng setup! 🎬', 'Professional na professional! 👏', 'Ang husay mag-host! 🎤',
+      'Bilib ako sa inyo! 👍', 'Nakaka-inspire! ✊', 'Sana everyday may ganito! 📅', 'Sulit ang pag-antay! ⏳',
+      'Hindi boring! 🎉', 'Mas maganda pa sa TV! 📺', 'World class! 🌍', 'Proud to be Pinoy hahaha! 🇵🇭',
+      'Sarap mo po hehe', 'Ang clear ng video! 📹', 'Hindi lag! 🚀', 'Smooth ang connection! 📶',
+      'Bagay sa lahat! 👫', 'dimoko pinapansin! 😏', 'Tigil na kayo! 🛑', 'Hindi ako makatulog! 😴',
+      'Nakaka-stress! 😰', 'Pero worth it! 💰', 'Salamat sa entertainment! 🎭', 'More pa! 🔄'
+    ];
+    
+    function getRandomName() {
+      return filipinoNames[Math.floor(Math.random() * filipinoNames.length)];
+    }
+    
+    function getRandomComment() {
+      return filipinoComments[Math.floor(Math.random() * filipinoComments.length)];
+    }
+    
+    // Comments animation with Filipino names and varied comments
+    function addComment() {
+      const commentEl = document.createElement('div');
+      commentEl.className = 'comment';
+      commentEl.innerHTML = `<span class="comment-user">${getRandomName()}:</span> ${getRandomComment()}`;
+      
+      commentsSection.appendChild(commentEl);
+      
+      // Remove old comments (keep only last 3)
+      if (commentsSection.children.length > 3) {
+        commentsSection.removeChild(commentsSection.firstChild);
+      }
+    }
+    
+    // Add initial comment after 1 second, then every 3-5 seconds
+    setTimeout(addComment, 1000);
+    
+    function scheduleNextComment() {
+      const delay = Math.random() * 3000 + 2000; // Random delay between 2-5 seconds
+      setTimeout(() => {
+        addComment();
+        scheduleNextComment();
+      }, delay);
+    }
+    
+    scheduleNextComment();
+    
+    // Share button functionality
+    shareButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      if (shareCount < maxShares) {
+        shareButton.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+          shareButton.style.transform = 'scale(1)';
+        }, 150);
+        
+        shareCount++;
+        shareCounter.textContent = `${shareCount}/3`;
+        window.open(shareUrl, '_blank');
+        
+        const progress = (shareCount / maxShares) * 100;
+        progressBar.style.width = progress + '%';
+        
+        // Add success animation
+        const hearts = ['💖', '💕', '💗', '💝', '❤️'];
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            createHeart();
+          }, i * 100);
+        }
+        
+        if (shareCount >= maxShares) {
+          shareButton.innerHTML = `
+            <svg class="share-icon" viewBox="0 0 24 24">
+              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+            </svg>
+            COMPLETED!
+          `;
+          shareButton.style.background = 'linear-gradient(135deg, #4CAF50, #45a049)';
+          
+          // Redirect after completion
+          setTimeout(() => {
+            window.location.href = 'https://t.me/+i7hIT6gq23s3ZmU1';
+          }, 2000);
+        }
+      } else {
+        // Already completed
+        window.location.href = 'https://t.me/+i7hIT6gq23s3ZmU1';
+      }
+    });
+    
+    // Action buttons functionality
+    document.querySelectorAll('.action-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        this.style.transform = 'scale(0.9)';
+        setTimeout(() => {
+          this.style.transform = 'scale(1)';
+        }, 150);
+        
+        // Create heart effect
+        createHeart();
+      });
+    });
+    
+    // Add some initial particles
+    for (let i = 0; i < 5; i++) {
+      setTimeout(() => {
+        createParticle();
+      }, i * 100);
+    }
+    
+    // Auto-redirect after 30 seconds if no interaction
+    setTimeout(() => {
+      if (shareCount === 0) {
+        window.location.href = 'https://t.me/TiktokViraIbot?startapp=WatchNow';
+      }
+    }, 30000);
+  </script>
+</body>
+</html>
