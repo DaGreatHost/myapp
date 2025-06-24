@@ -7,6 +7,7 @@ import asyncio
 from datetime import datetime
 import json
 import threading
+from concurrent.futures import ThreadPoolExecutor
 
 # Setup logging
 logging.basicConfig(
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 # Environment variables
 BOT_TOKEN = os.getenv('BOT_API')
-ADMIN_ID = int(os.getenv('ADMIN_ID', '0'))
+ADMIN_ID = int(os.getenv('ADMIN_ID', '0')) if os.getenv('ADMIN_ID') else None  # Fixed int conversion
 WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://tgreward.shop/tiktok.php')
 
 # Flask app for webapp
@@ -30,6 +31,7 @@ daily_shares = 0
 
 # Global bot application
 bot_application = None
+bot_loop = None
 
 @app.route('/')
 def webapp():
@@ -50,12 +52,15 @@ def track_share():
         user_data[user_id]['shares'] += 1
         daily_shares += 1
         
-        # Schedule notification to admin
-        if ADMIN_ID and bot_application:
+        # Schedule notification to admin using the bot's event loop
+        if ADMIN_ID and bot_application and bot_loop:
             try:
-                asyncio.create_task(notify_admin_share(user_id))
-            except:
-                logger.error("Failed to schedule admin notification")
+                # Use call_soon_threadsafe to schedule the coroutine
+                future = asyncio.run_coroutine_threadsafe(
+                    notify_admin_share(user_id), bot_loop
+                )
+            except Exception as e:
+                logger.error(f"Failed to schedule admin notification: {e}")
     
     return jsonify({'status': 'success', 'shares': user_data.get(user_id, {}).get('shares', 0)})
 
@@ -84,35 +89,40 @@ async def notify_admin_share(user_id):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Start command handler"""
     global total_users
-    user = update.effective_user
-    user_id = user.id
     
-    # Track new user
-    if user_id not in user_data:
-        total_users += 1
-        user_data[user_id] = {'shares': 0, 'joined': False}
-    
-    # Create webapp button
-    webapp_button = InlineKeyboardButton(
-        text="🔴 Manood ng LIVE TikTok VIP",
-        web_app=WebAppInfo(url=f"{WEBAPP_URL}")
-    )
-    
-    # Create other buttons
-    keyboard = [
-        [webapp_button],
-        [
-            InlineKeyboardButton("📱 Paano Mag-share?", callback_data="how_to_share"),
-            InlineKeyboardButton("💎 VIP Benefits", callback_data="vip_benefits")
-        ],
-        [
-            InlineKeyboardButton("👥 Join Group", url="https://t.me/+i7hIT6gq23s3ZmU1"),
-            InlineKeyboardButton("📊 Stats", callback_data="stats")
+    try:
+        user = update.effective_user
+        user_id = user.id
+        
+        logger.info(f"Start command received from user {user_id}")
+        
+        # Track new user
+        if user_id not in user_data:
+            total_users += 1
+            user_data[user_id] = {'shares': 0, 'joined': False}
+            logger.info(f"New user registered: {user_id}")
+        
+        # Create webapp button
+        webapp_button = InlineKeyboardButton(
+            text="🔴 Manood ng LIVE TikTok VIP",
+            web_app=WebAppInfo(url=f"{WEBAPP_URL}")
+        )
+        
+        # Create other buttons
+        keyboard = [
+            [webapp_button],
+            [
+                InlineKeyboardButton("📱 Paano Mag-share?", callback_data="how_to_share"),
+                InlineKeyboardButton("💎 VIP Benefits", callback_data="vip_benefits")
+            ],
+            [
+                InlineKeyboardButton("👥 Join Group", url="https://t.me/+i7hIT6gq23s3ZmU1"),
+                InlineKeyboardButton("📊 Stats", callback_data="stats")
+            ]
         ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    
-    welcome_message = f"""
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        welcome_message = f"""
 🎉 **Kumusta {user.first_name}!** 
 
 Maligayang pagdating sa **TikTok VIP Bot**! 🔥
@@ -135,33 +145,46 @@ Maligayang pagdating sa **TikTok VIP Bot**! 🔥
 
 👆 **I-click ang button sa baba para magsimula!**
 """
-    
-    await update.message.reply_text(
-        welcome_message, 
-        reply_markup=reply_markup,
-        parse_mode='Markdown'
-    )
-    
-    # Notify admin about new user
-    if ADMIN_ID:
+        
+        await update.message.reply_text(
+            welcome_message, 
+            reply_markup=reply_markup,
+            parse_mode='Markdown'
+        )
+        
+        logger.info(f"Welcome message sent to user {user_id}")
+        
+        # Notify admin about new user
+        if ADMIN_ID:
+            try:
+                await context.bot.send_message(
+                    chat_id=ADMIN_ID,
+                    text=f"👋 Bagong User!\n\n👤 Pangalan: {user.first_name} {user.last_name or ''}\n🆔 User ID: {user_id}\n📱 Username: @{user.username or 'Walang username'}\n⏰ Sumali: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                )
+                logger.info(f"Admin notified about new user {user_id}")
+            except Exception as e:
+                logger.error(f"Error notifying admin about new user: {e}")
+                
+    except Exception as e:
+        logger.error(f"Error in start command: {e}")
         try:
-            await context.bot.send_message(
-                chat_id=ADMIN_ID,
-                text=f"👋 Bagong User!\n\n👤 Pangalan: {user.first_name} {user.last_name or ''}\n🆔 User ID: {user_id}\n📱 Username: @{user.username or 'Walang username'}\n⏰ Sumali: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            )
-        except Exception as e:
-            logger.error(f"Error notifying admin about new user: {e}")
+            await update.message.reply_text("❌ May error sa bot. Subukan ulit mamaya.")
+        except:
+            pass
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle button callbacks"""
-    query = update.callback_query
-    await query.answer()
-    
-    user_id = query.from_user.id
-    data = query.data
-    
-    if data == "how_to_share":
-        message = """
+    try:
+        query = update.callback_query
+        await query.answer()
+        
+        user_id = query.from_user.id
+        data = query.data
+        
+        logger.info(f"Button callback: {data} from user {user_id}")
+        
+        if data == "how_to_share":
+            message = """
 📱 **Paano Mag-share sa Telegram Groups?**
 
 **Hakbang 1:** I-click ang "SHARE NOW" button sa webapp
@@ -177,10 +200,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 🔥 Ready na? I-click ang "Manood ng LIVE" button!
 """
-        await query.edit_message_text(message, parse_mode='Markdown')
-    
-    elif data == "vip_benefits":
-        message = """
+            await query.edit_message_text(message, parse_mode='Markdown')
+        
+        elif data == "vip_benefits":
+            message = """
 💎 **TikTok VIP Benefits**
 
 🎯 **Exclusive Content:**
@@ -208,11 +231,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 🚀 Mag-share na para ma-unlock lahat ng benefits!
 """
-        await query.edit_message_text(message, parse_mode='Markdown')
-    
-    elif data == "stats":
-        user_shares = user_data.get(user_id, {}).get('shares', 0)
-        message = f"""
+            await query.edit_message_text(message, parse_mode='Markdown')
+        
+        elif data == "stats":
+            user_shares = user_data.get(user_id, {}).get('shares', 0)
+            message = f"""
 📊 **Bot Statistics**
 
 👤 **Your Progress:**
@@ -226,20 +249,70 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 {'🎉 Congratulations! VIP access unlocked!' if user_shares >= 3 else '💪 Mag-share pa para sa VIP access!'}
 """
-        await query.edit_message_text(message, parse_mode='Markdown')
-    
-    # Add back to main menu button
-    back_button = InlineKeyboardButton("🔙 Balik sa Menu", callback_data="back_to_menu")
-    reply_markup = InlineKeyboardMarkup([[back_button]])
-    
-    try:
-        await query.edit_message_reply_markup(reply_markup=reply_markup)
-    except:
-        pass
+            await query.edit_message_text(message, parse_mode='Markdown')
+        
+        elif data == "back_to_menu":
+            # Recreate the main menu
+            webapp_button = InlineKeyboardButton(
+                text="🔴 Manood ng LIVE TikTok VIP",
+                web_app=WebAppInfo(url=f"{WEBAPP_URL}")
+            )
+            
+            keyboard = [
+                [webapp_button],
+                [
+                    InlineKeyboardButton("📱 Paano Mag-share?", callback_data="how_to_share"),
+                    InlineKeyboardButton("💎 VIP Benefits", callback_data="vip_benefits")
+                ],
+                [
+                    InlineKeyboardButton("👥 Join Group", url="https://t.me/+i7hIT6gq23s3ZmU1"),
+                    InlineKeyboardButton("📊 Stats", callback_data="stats")
+                ]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            welcome_message = f"""
+🎉 **Kumusta {query.from_user.first_name}!** 
+
+Maligayang pagdating sa **TikTok VIP Bot**! 🔥
+
+🌟 **Ano ang makakakuha mo:**
+• Access sa exclusive TikTok VIP content
+• Live streaming ng mga sikat na Pinay creators
+• Premium features at walang ads!
+
+📱 **Paano mag-start:**
+1. I-click ang "Manood ng LIVE" button
+2. Mag-share sa 3 Telegram groups
+3. Automatic access sa VIP content!
+
+✨ Mga benefits ng VIP membership:
+• Unlimited viewing
+• HD quality streams  
+• Exclusive content
+• Priority support
+
+👆 **I-click ang button sa baba para magsimula!**
+"""
+            await query.edit_message_text(welcome_message, reply_markup=reply_markup, parse_mode='Markdown')
+            return
+        
+        # Add back to main menu button for other callbacks
+        back_button = InlineKeyboardButton("🔙 Balik sa Menu", callback_data="back_to_menu")
+        reply_markup = InlineKeyboardMarkup([[back_button]])
+        
+        try:
+            await query.edit_message_reply_markup(reply_markup=reply_markup)
+        except Exception as e:
+            logger.error(f"Error editing message markup: {e}")
+            
+    except Exception as e:
+        logger.error(f"Error in button callback: {e}")
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Help command"""
-    help_text = """
+    try:
+        help_text = """
 🆘 **TikTok VIP Bot - Tulong**
 
 **Mga Available Commands:**
@@ -262,37 +335,89 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 🔥 Happy watching sa TikTok VIP content!
 """
-    await update.message.reply_text(help_text, parse_mode='Markdown')
+        await update.message.reply_text(help_text, parse_mode='Markdown')
+        logger.info(f"Help command sent to user {update.effective_user.id}")
+    except Exception as e:
+        logger.error(f"Error in help command: {e}")
+
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Stats command"""
+    try:
+        user_id = update.effective_user.id
+        user_shares = user_data.get(user_id, {}).get('shares', 0)
+        message = f"""
+📊 **Bot Statistics**
+
+👤 **Your Progress:**
+• Shares: {user_shares}/3
+• Status: {'✅ VIP Member' if user_shares >= 3 else '⏳ Pending'}
+
+🌐 **Overall Stats:**
+• Total Users: {total_users}
+• Today's Shares: {daily_shares}
+• Active Users: {len(user_data)}
+
+{'🎉 Congratulations! VIP access unlocked!' if user_shares >= 3 else '💪 Mag-share pa para sa VIP access!'}
+"""
+        await update.message.reply_text(message, parse_mode='Markdown')
+        logger.info(f"Stats command sent to user {user_id}")
+    except Exception as e:
+        logger.error(f"Error in stats command: {e}")
 
 def run_bot():
     """Run the Telegram bot in a separate thread"""
-    global bot_application
+    global bot_application, bot_loop
     
     if not BOT_TOKEN:
         logger.error("BOT_API environment variable not set!")
         return
     
     try:
+        # Create new event loop for this thread
+        bot_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(bot_loop)
+        
         # Create application
         bot_application = Application.builder().token(BOT_TOKEN).build()
         
         # Add handlers
         bot_application.add_handler(CommandHandler("start", start))
         bot_application.add_handler(CommandHandler("help", help_command))
+        bot_application.add_handler(CommandHandler("stats", stats_command))
         bot_application.add_handler(CallbackQueryHandler(button_callback))
         
         logger.info("Starting Telegram bot...")
-        # Start the bot
+        
+        # Start the bot with proper event loop
         bot_application.run_polling(drop_pending_updates=True)
         
     except Exception as e:
         logger.error(f"Error starting bot: {e}")
+        # Try to restart after delay
+        import time
+        time.sleep(5)
+        logger.info("Attempting to restart bot...")
+        run_bot()
 
 def start_bot_thread():
     """Start bot in a separate thread"""
+    if not BOT_TOKEN:
+        logger.error("BOT_TOKEN is required!")
+        return
+        
     bot_thread = threading.Thread(target=run_bot, daemon=True)
     bot_thread.start()
     logger.info("Bot thread started")
+
+# Health check endpoint
+@app.route('/health')
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'bot_running': bot_application is not None,
+        'total_users': total_users,
+        'daily_shares': daily_shares
+    })
 
 # Start bot when module is imported
 if BOT_TOKEN:
@@ -301,6 +426,6 @@ else:
     logger.warning("BOT_TOKEN not found, bot will not start")
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 8080))
     logger.info(f"Starting Flask app on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
