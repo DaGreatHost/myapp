@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Environment variables
 BOT_TOKEN = os.getenv('BOT_API')
 ADMIN_ID = int(os.getenv('ADMIN_ID', '0')) if os.getenv('ADMIN_ID') else None
-WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://tgreward.shop/tiktok.php')
+WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://tgreward.shop/tiktokbot.php')
 
 # Flask app for webapp
 app = Flask(__name__)
