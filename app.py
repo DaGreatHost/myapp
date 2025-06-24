@@ -8,6 +8,8 @@ from datetime import datetime
 import json
 import threading
 from concurrent.futures import ThreadPoolExecutor
+import signal
+import sys
 
 # Setup logging
 logging.basicConfig(
@@ -18,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Environment variables
 BOT_TOKEN = os.getenv('BOT_API')
-ADMIN_ID = int(os.getenv('ADMIN_ID', '0')) if os.getenv('ADMIN_ID') else None  # Fixed int conversion
+ADMIN_ID = int(os.getenv('ADMIN_ID', '0')) if os.getenv('ADMIN_ID') else None
 WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://tgreward.shop/tiktok.php')
 
 # Flask app for webapp
@@ -31,7 +33,6 @@ daily_shares = 0
 
 # Global bot application
 bot_application = None
-bot_loop = None
 
 @app.route('/')
 def webapp():
@@ -52,13 +53,15 @@ def track_share():
         user_data[user_id]['shares'] += 1
         daily_shares += 1
         
-        # Schedule notification to admin using the bot's event loop
-        if ADMIN_ID and bot_application and bot_loop:
+        # Schedule notification to admin
+        if ADMIN_ID and bot_application:
             try:
-                # Use call_soon_threadsafe to schedule the coroutine
-                future = asyncio.run_coroutine_threadsafe(
-                    notify_admin_share(user_id), bot_loop
-                )
+                # Use asyncio to run the coroutine in the background
+                loop = asyncio.new_event_loop()
+                threading.Thread(
+                    target=lambda: loop.run_until_complete(notify_admin_share(user_id)),
+                    daemon=True
+                ).start()
             except Exception as e:
                 logger.error(f"Failed to schedule admin notification: {e}")
     
@@ -71,6 +74,15 @@ def get_stats():
         'total_users': total_users,
         'daily_shares': daily_shares,
         'active_users': len(user_data)
+    })
+
+@app.route('/health')
+def health_check():
+    return jsonify({
+        'status': 'healthy',
+        'bot_running': bot_application is not None,
+        'total_users': total_users,
+        'daily_shares': daily_shares
     })
 
 async def notify_admin_share(user_id):
@@ -364,19 +376,15 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     except Exception as e:
         logger.error(f"Error in stats command: {e}")
 
-def run_bot():
-    """Run the Telegram bot in a separate thread"""
-    global bot_application, bot_loop
+async def main():
+    """Main function to run the bot"""
+    global bot_application
     
     if not BOT_TOKEN:
         logger.error("BOT_API environment variable not set!")
         return
     
     try:
-        # Create new event loop for this thread
-        bot_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(bot_loop)
-        
         # Create application
         bot_application = Application.builder().token(BOT_TOKEN).build()
         
@@ -388,44 +396,54 @@ def run_bot():
         
         logger.info("Starting Telegram bot...")
         
-        # Start the bot with proper event loop
-        bot_application.run_polling(drop_pending_updates=True)
+        # Initialize and start the bot
+        await bot_application.initialize()
+        await bot_application.start()
         
+        # Start polling in the background
+        await bot_application.updater.start_polling(drop_pending_updates=True)
+        
+        logger.info("Bot is running successfully!")
+        
+        # Keep the bot running
+        while True:
+            await asyncio.sleep(1)
+            
     except Exception as e:
-        logger.error(f"Error starting bot: {e}")
-        # Try to restart after delay
-        import time
-        time.sleep(5)
-        logger.info("Attempting to restart bot...")
-        run_bot()
+        logger.error(f"Error in bot main: {e}")
+    finally:
+        if bot_application:
+            try:
+                await bot_application.stop()
+                await bot_application.shutdown()
+            except:
+                pass
 
-def start_bot_thread():
-    """Start bot in a separate thread"""
-    if not BOT_TOKEN:
-        logger.error("BOT_TOKEN is required!")
-        return
-        
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    logger.info("Bot thread started")
-
-# Health check endpoint
-@app.route('/health')
-def health_check():
-    return jsonify({
-        'status': 'healthy',
-        'bot_running': bot_application is not None,
-        'total_users': total_users,
-        'daily_shares': daily_shares
-    })
-
-# Start bot when module is imported
-if BOT_TOKEN:
-    start_bot_thread()
-else:
-    logger.warning("BOT_TOKEN not found, bot will not start")
-
-if __name__ == '__main__':
+def run_flask():
+    """Run Flask app"""
     port = int(os.environ.get('PORT', 8080))
     logger.info(f"Starting Flask app on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True, use_reloader=False)
+
+def run_bot_async():
+    """Run bot in async mode"""
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
+    except Exception as e:
+        logger.error(f"Bot error: {e}")
+
+if __name__ == '__main__':
+    if not BOT_TOKEN:
+        logger.error("BOT_TOKEN is required!")
+        sys.exit(1)
+    
+    # Start Flask in a separate thread
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    logger.info("Flask thread started")
+    
+    # Run bot in main thread (required for signal handling)
+    logger.info("Starting bot in main thread...")
+    run_bot_async()
