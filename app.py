@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, jsonify
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 import asyncio
-from datetime import datetime
+from datetime import datetime, date
 import json
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -26,11 +26,18 @@ WEBAPP_URL = os.getenv('WEBAPP_URL', 'https://tgreward.shop/tiktokbot.php')
 # Flask app for webapp
 app = Flask(__name__)
 
-# Global variables for tracking - Enhanced with more details
+# Global variables for tracking - Enhanced with fake initial stats
 user_data = {}
+# Initial fake stats - these will increment as real users join
+INITIAL_VERIFIED_USERS = 1000
+INITIAL_VIP_USERS = 500
+INITIAL_ACTIVE_USERS = 800
+
 total_users = 0
 daily_shares = 0
-share_history = []  # New: Track share history
+share_history = []  # Track share history
+today_shares = []   # Track today's shares specifically
+last_reset_date = None  # Track when we last reset daily stats
 
 # Global bot application
 bot_application = None
@@ -40,7 +47,7 @@ DATA_FILE = 'bot_data.json'
 
 def load_data():
     """Load data from file"""
-    global user_data, total_users, daily_shares, share_history
+    global user_data, total_users, daily_shares, share_history, today_shares, last_reset_date
     try:
         if os.path.exists(DATA_FILE):
             with open(DATA_FILE, 'r') as f:
@@ -49,9 +56,28 @@ def load_data():
                 total_users = data.get('total_users', 0)
                 daily_shares = data.get('daily_shares', 0)
                 share_history = data.get('share_history', [])
+                today_shares = data.get('today_shares', [])
+                last_reset_date = data.get('last_reset_date', None)
+                
+                # Reset daily stats if it's a new day
+                reset_daily_stats_if_needed()
+                
                 logger.info(f"Data loaded: {total_users} users, {daily_shares} shares")
     except Exception as e:
         logger.error(f"Error loading data: {e}")
+
+def reset_daily_stats_if_needed():
+    """Reset daily stats if it's a new day"""
+    global daily_shares, today_shares, last_reset_date
+    
+    current_date = date.today().isoformat()
+    
+    if last_reset_date != current_date:
+        daily_shares = 0
+        today_shares = []
+        last_reset_date = current_date
+        save_data()
+        logger.info(f"Daily stats reset for new day: {current_date}")
 
 def save_data():
     """Save data to file"""
@@ -60,13 +86,30 @@ def save_data():
             'user_data': user_data,
             'total_users': total_users,
             'daily_shares': daily_shares,
-            'share_history': share_history
+            'share_history': share_history,
+            'today_shares': today_shares,
+            'last_reset_date': last_reset_date
         }
         with open(DATA_FILE, 'w') as f:
             json.dump(data, f, indent=2)
         logger.info("Data saved successfully")
     except Exception as e:
         logger.error(f"Error saving data: {e}")
+
+def get_display_stats():
+    """Get stats with fake initial numbers added"""
+    real_users = len(user_data)
+    real_vip_users = len([u for u in user_data.values() if u.get('shares', 0) >= 3])
+    
+    return {
+        'verified_users': INITIAL_VERIFIED_USERS + total_users,
+        'vip_users': INITIAL_VIP_USERS + real_vip_users,
+        'active_users': INITIAL_ACTIVE_USERS + real_users,
+        'total_users': total_users,
+        'daily_shares': daily_shares,
+        'real_users': real_users,
+        'real_vip_users': real_vip_users
+    }
 
 @app.route('/')
 def webapp():
@@ -75,10 +118,13 @@ def webapp():
 
 @app.route('/api/share', methods=['POST'])
 def track_share():
-    """Track user shares - Enhanced"""
+    """Track user shares - Enhanced with today's shares tracking"""
     global daily_shares
     data = request.json
     user_id = str(data.get('user_id'))  # Convert to string for consistency
+    
+    # Reset daily stats if needed
+    reset_daily_stats_if_needed()
     
     if user_id:
         # Initialize user data if not exists
@@ -101,11 +147,13 @@ def track_share():
             'first_name': user_data[user_id]['first_name'],
             'username': user_data[user_id]['username'],
             'timestamp': datetime.now().isoformat(),
-            'total_shares': user_data[user_id]['shares']
+            'total_shares': user_data[user_id]['shares'],
+            'date': date.today().isoformat()
         }
         share_history.append(share_entry)
+        today_shares.append(share_entry)
         
-        # Keep only last 100 shares to avoid too much data
+        # Keep only last 100 shares in history to avoid too much data
         if len(share_history) > 100:
             share_history = share_history[-100:]
         
@@ -133,28 +181,47 @@ def track_share():
 
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
-    """Get current stats"""
+    """Get current stats with fake numbers"""
+    reset_daily_stats_if_needed()
+    stats = get_display_stats()
+    
     return jsonify({
-        'total_users': total_users,
-        'daily_shares': daily_shares,
-        'active_users': len(user_data),
-        'vip_users': len([u for u in user_data.values() if u.get('shares', 0) >= 3])
+        'verified_users': stats['verified_users'],
+        'vip_users': stats['vip_users'], 
+        'active_users': stats['active_users'],
+        'daily_shares': stats['daily_shares'],
+        'total_users': stats['total_users']
     })
 
 @app.route('/api/recent_shares', methods=['GET'])
 def get_recent_shares():
     """Get recent shares for admin"""
+    reset_daily_stats_if_needed()
     # Return last 20 shares
     recent = share_history[-20:] if len(share_history) > 20 else share_history
     return jsonify({'shares': recent})
 
+@app.route('/api/today_shares', methods=['GET'])
+def get_today_shares():
+    """Get today's shares specifically"""
+    reset_daily_stats_if_needed()
+    return jsonify({
+        'shares': today_shares,
+        'count': len(today_shares),
+        'date': date.today().isoformat()
+    })
+
 @app.route('/health')
 def health_check():
+    reset_daily_stats_if_needed()
+    stats = get_display_stats()
     return jsonify({
         'status': 'healthy',
         'bot_running': bot_application is not None,
-        'total_users': total_users,
-        'daily_shares': daily_shares
+        'verified_users': stats['verified_users'],
+        'vip_users': stats['vip_users'],
+        'active_users': stats['active_users'],
+        'daily_shares': stats['daily_shares']
     })
 
 async def notify_admin_share(user_id):
@@ -172,7 +239,7 @@ async def notify_admin_share(user_id):
         
         await bot_application.bot.send_message(
             chat_id=ADMIN_ID,
-            text=f"🔥 Bagong Share!\n\n👤 User: {first_name}\n🆔 ID: {user_id}\n📱 Username: @{username if username else 'Walang username'}\n📊 Total Shares: {user_shares}\n{status}\n⏰ Oras: {datetime.now().strftime('%H:%M:%S')}"
+            text=f"🔥 Bagong Share!\n\n👤 User: {first_name}\n🆔 ID: {user_id}\n📱 Username: @{username if username else 'Walang username'}\n📊 Total Shares: {user_shares}\n{status}\n⏰ Oras: {datetime.now().strftime('%H:%M:%S')}\n📅 Today's Total: {len(today_shares)}"
         )
     except Exception as e:
         logger.error(f"Error notifying admin: {e}")
@@ -186,6 +253,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         user_id = str(user.id)
         
         logger.info(f"Start command received from user {user_id}")
+        
+        # Reset daily stats if needed
+        reset_daily_stats_if_needed()
         
         # Track new user
         if user_id not in user_data:
@@ -269,9 +339,10 @@ Maligayang pagdating sa **TikTok VIP Bot**! 🔥
         # Notify admin about new user
         if ADMIN_ID:
             try:
+                stats = get_display_stats()
                 await context.bot.send_message(
                     chat_id=ADMIN_ID,
-                    text=f"👋 Bagong User!\n\n👤 Pangalan: {user.first_name} {user.last_name or ''}\n🆔 User ID: {user_id}\n📱 Username: @{user.username or 'Walang username'}\n⏰ Sumali: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n📊 Total Users: {total_users}"
+                    text=f"👋 Bagong User!\n\n👤 Pangalan: {user.first_name} {user.last_name or ''}\n🆔 User ID: {user_id}\n📱 Username: @{user.username or 'Walang username'}\n⏰ Sumali: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n📊 Updated Stats:\n👥 Verified Users: {stats['verified_users']:,}\n💎 VIP Users: {stats['vip_users']:,}\n🔥 Active Users: {stats['active_users']:,}"
                 )
                 logger.info(f"Admin notified about new user {user_id}")
             except Exception as e:
@@ -294,6 +365,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         data = query.data
         
         logger.info(f"Button callback: {data} from user {user_id}")
+        
+        # Reset daily stats if needed
+        reset_daily_stats_if_needed()
         
         if data == "how_to_share":
             message = """
@@ -352,16 +426,17 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         
         elif data == "stats":
             user_shares = user_data.get(user_id, {}).get('shares', 0)
-            vip_users = len([u for u in user_data.values() if u.get('shares', 0) >= 3])
+            stats = get_display_stats()
             
-            # Recent sharers list
+            # Recent sharers list (today's shares)
             recent_sharers = []
-            for share in share_history[-10:]:  # Last 10 shares
+            for share in today_shares[-10:]:  # Last 10 shares from today
                 name = share.get('first_name', 'Unknown')
                 shares = share.get('total_shares', 0)
-                recent_sharers.append(f"• {name} ({shares} shares)")
+                time_str = datetime.fromisoformat(share.get('timestamp', '')).strftime('%H:%M') if share.get('timestamp') else ''
+                recent_sharers.append(f"• {name} ({shares} shares) - {time_str}")
             
-            recent_text = "\n".join(recent_sharers) if recent_sharers else "Walang recent shares"
+            recent_text = "\n".join(recent_sharers) if recent_sharers else "Walang shares pa ngayong araw"
             
             message = f"""
 📊 **Bot Statistics**
@@ -370,13 +445,13 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 • Shares: {user_shares}/3
 • Status: {'✅ VIP Member' if user_shares >= 3 else '⏳ Pending'}
 
-🌐 **Overall Stats:**
-• Total Users: {total_users}
-• VIP Members: {vip_users}
-• Today's Shares: {daily_shares}
-• Active Users: {len(user_data)}
+🌐 **Global Stats:**
+• 🔐 Verified Users: {stats['verified_users']:,}
+• 💎 VIP Members: {stats['vip_users']:,}
+• 🔥 Active Users: {stats['active_users']:,}
+• 📅 Today's Shares: {stats['daily_shares']}
 
-📋 **Recent Sharers:**
+📋 **Today's Recent Sharers:**
 {recent_text}
 
 {'🎉 Congratulations! VIP access unlocked!' if user_shares >= 3 else '💪 Mag-share pa para sa VIP access!'}
@@ -486,20 +561,24 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         logger.error(f"Error in help command: {e}")
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Stats command - Enhanced"""
+    """Stats command - Enhanced with fake numbers"""
     try:
         user_id = str(update.effective_user.id)
         user_shares = user_data.get(user_id, {}).get('shares', 0)
-        vip_users = len([u for u in user_data.values() if u.get('shares', 0) >= 3])
         
-        # Recent sharers list
+        # Reset daily stats if needed
+        reset_daily_stats_if_needed()
+        stats = get_display_stats()
+        
+        # Recent sharers list (today's shares)
         recent_sharers = []
-        for share in share_history[-10:]:  # Last 10 shares
+        for share in today_shares[-10:]:  # Last 10 shares from today
             name = share.get('first_name', 'Unknown')
             shares = share.get('total_shares', 0)
-            recent_sharers.append(f"• {name} ({shares} shares)")
+            time_str = datetime.fromisoformat(share.get('timestamp', '')).strftime('%H:%M') if share.get('timestamp') else ''
+            recent_sharers.append(f"• {name} ({shares} shares) - {time_str}")
         
-        recent_text = "\n".join(recent_sharers) if recent_sharers else "Walang recent shares"
+        recent_text = "\n".join(recent_sharers) if recent_sharers else "Walang shares pa ngayong araw"
         
         message = f"""
 📊 **Bot Statistics**
@@ -508,13 +587,13 @@ async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 • Shares: {user_shares}/3
 • Status: {'✅ VIP Member' if user_shares >= 3 else '⏳ Pending'}
 
-🌐 **Overall Stats:**
-• Total Users: {total_users}
-• VIP Members: {vip_users}
-• Today's Shares: {daily_shares}
-• Active Users: {len(user_data)}
+🌐 **Global Stats:**
+• 🔐 Verified Users: {stats['verified_users']:,}
+• 💎 VIP Members: {stats['vip_users']:,}
+• 🔥 Active Users: {stats['active_users']:,}
+• 📅 Today's Shares: {stats['daily_shares']}
 
-📋 **Recent Sharers:**
+📋 **Today's Recent Sharers:**
 {recent_text}
 
 {'🎉 Congratulations! VIP access unlocked!' if user_shares >= 3 else '💪 Mag-share pa para sa VIP access o kaya i-click ang VIP button!'}
